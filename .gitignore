@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+src/generated
+# Secrets : tout fichier d'environnement sauf le modèle
+.env*
+!.env.example
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+
+.vercel
+
+# Outils locaux
+.claude

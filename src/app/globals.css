@@ -1,0 +1,589 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   Design system Lalla
+   Fond blanc cassé premium, encre profonde, une seule couleur
+   d'accent : celle de l'hôtel (injectée via --accent-hotel).
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  --accent-hotel: #6f7d5c;
+}
+
+/* « inline » : les utilitaires reprennent var(--accent-hotel) tel quel, résolu sur
+   l'élément. Sans cela, la couleur serait figée au niveau :root et la couleur
+   propre à chaque hôtel (posée sur un conteneur) ne s'appliquerait jamais. */
+@theme inline {
+  --color-accent: var(--accent-hotel);
+  --color-accent-pale: color-mix(in oklab, var(--accent-hotel) 10%, white);
+  --color-accent-doux: color-mix(in oklab, var(--accent-hotel) 22%, white);
+  --color-accent-profond: color-mix(in oklab, var(--accent-hotel) 82%, black);
+  /* Messages de Lalla : couleur choisie par l'hôtel, sinon teinte dérivée de l'accent */
+  --color-bulle: var(--bulle-hotel, color-mix(in oklab, var(--accent-hotel) 24%, white));
+  --color-texte-bulle: var(--couleur-messages, var(--texte-bulle-hotel, #000000)); /* texte des messages : noir pur */
+  --color-texte-bulle-doux: var(--texte-bulle-doux-hotel, #8b8e84);
+  /* Messages du client : couleur choisie par l'hôtel, sinon le bleu clair des rubriques actives
+     (teinte dérivée de la couleur des boutons) */
+  --color-bulle-client: var(
+    --bulle-client-hotel,
+    color-mix(
+      in oklab,
+      var(--bouton-hotel, var(--bouton-defaut, color-mix(in oklab, var(--accent-hotel) 82%, black))) 15%,
+      white
+    )
+  );
+  --color-texte-bulle-client: var(--couleur-messages, var(--texte-bulle-client-hotel, #000000));
+  --color-texte-bulle-client-doux: var(--texte-bulle-client-doux-hotel, #8b8e84);
+  --color-coche-lue: var(--coche-lue-hotel, var(--accent-hotel)); /* « lu » : coches du message client */
+  /* Boutons principaux : couleur choisie par l'hôtel, sinon l'accent assombri (client) ou l'encre (espace) */
+  --color-bouton: var(--bouton-hotel, var(--bouton-defaut, color-mix(in oklab, var(--accent-hotel) 82%, black)));
+  --color-texte-bouton: var(--texte-bouton-hotel, #ffffff);
+
+  /* ── Onglets de l'espace hôtel (Messages, Carte, Chambres) : à régler ici ──
+     Fond de la barre, onglet actif et texte de l'onglet actif (remplacez par un code, ex. #e8e4da). */
+  --color-fond-onglets: var(--page-onglets, color-mix(in oklab, var(--fond-hotel, #f7f8f3) 91%, #1a1b17));
+  --color-onglet-actif: var(--page-onglet-actif, #ffffff);
+  --color-texte-onglet-actif: var(--page-texte-onglet-actif, #1a1b17);
+  /* Fond de l'interface client : teinte claire choisie par l'hôtel, sinon blanc cassé */
+  --color-fond: var(--fond-hotel, #f7f8f3);
+  /* Surfaces en retrait (champs, onglets, boutons discrets) : un ton sous le fond */
+  --color-creux: color-mix(in oklab, var(--fond-hotel, #f7f8f3) 96%, #1a1b17);
+  /* Heures et mot de passe Wi-Fi mis en avant : couleur choisie par l'hôtel, sinon l'accent assombri */
+  --color-horaires: var(--horaires-hotel, color-mix(in oklab, var(--accent-hotel) 82%, black));
+
+  /* ── Navigation de l'espace hôtel (Messages · Carte · Plus) : onglet actif, à régler ici ──
+     Par défaut, comme les pastilles d'icône des sections : couleur des boutons sur un fond
+     très clair de la même teinte (chaîne complète : var(--color-bouton) se résoudrait sans la couleur de l'hôtel). */
+  --color-nav-actif: color-mix(
+    in oklab,
+    var(--bouton-hotel, var(--bouton-defaut, color-mix(in oklab, var(--accent-hotel) 82%, black))) 10%,
+    white
+  );
+  --color-texte-nav-actif: var(
+    --bouton-hotel,
+    var(--bouton-defaut, color-mix(in oklab, var(--accent-hotel) 82%, black))
+  );
+
+  /* ── Textes réglables par la direction (Informations → Textes, lib/typographie.ts) ──
+     La couleur choisie, sinon la couleur d'origine de l'interface. */
+  --color-nom-assistant: var(--couleur-nom-assistant, color-mix(in oklab, var(--accent-hotel) 82%, black));
+  --color-rubriques-accueil: var(--couleur-rubriques-accueil, #1a1b17);
+  --color-rubriques-menu: var(--couleur-rubriques-menu, #1a1b17);
+  --color-details-menu: var(--couleur-details-menu, #5a5d54);
+  --color-titres-cartes: var(--couleur-titres-cartes, #1a1b17);
+  --color-textes-cartes: var(--couleur-textes-cartes, #1a1b17);
+  --color-titres: var(--couleur-titres, #1a1b17);
+  /* Mention sous le nom de l'hôtel (« Hôtel & Spa »), dans la teinte sable du logo */
+  --color-mention-hotel: var(--couleur-mention-hotel, #a8865a);
+  --color-sections: var(--couleur-sections, #5a5d54);
+  --color-intitules: var(--couleur-intitules, #1a1b17);
+  --color-secondaires: var(--couleur-secondaires, #5a5d54);
+  --color-prix: var(--couleur-prix, #1a1b17);
+  --color-boutons: var(--couleur-boutons, var(--texte-bouton-hotel, #ffffff));
+  --color-wifi-reseau: var(--couleur-wifi-reseau, #000000);
+  --color-wifi-mot-de-passe: var(
+    --couleur-wifi-mot-de-passe,
+    var(--horaires-hotel, color-mix(in oklab, var(--accent-hotel) 82%, black))
+  );
+  --color-valeurs-horaires: var(
+    --couleur-valeurs-horaires,
+    var(--horaires-hotel, color-mix(in oklab, var(--accent-hotel) 82%, black))
+  );
+  --color-titres-equipe: var(--page-titres, var(--couleur-titres-equipe, #1a1b17));
+  --color-nom-hotel: var(--couleur-nom-hotel, #5a5d54);
+  --color-tuiles-equipe: var(--couleur-tuiles-equipe, #1a1b17);
+  --color-sous-titres-equipe: var(--couleur-sous-titres-equipe, #1a1b17);
+  --color-sections-equipe: var(--couleur-sections-equipe, #8b8e84);
+  --color-courant-equipe: var(--page-textes, var(--couleur-courant-equipe, #1a1b17));
+  --color-libelles-equipe: var(--page-textes, var(--couleur-libelles-equipe, #1a1b17));
+  --color-champs-equipe: var(--couleur-champs-equipe, #1a1b17);
+  --color-details-equipe: var(--page-textes, var(--couleur-details-equipe, #5a5d54));
+  --color-numeros: var(--page-textes, var(--couleur-numeros, #1a1b17));
+  --color-textes-equipe: var(--page-textes, var(--couleur-textes-equipe, #1a1b17));
+  --color-services-equipe: var(--page-textes, var(--couleur-services-equipe, #1a1b17));
+  /* Composants de l'équipe (couleurs choisies dans Design → Apparence → Équipe, variables --eq-* ;
+     sinon celles de l'hôtel) — chaînes complètes, résolues sur l'élément. Chaque bouton du tableau
+     de bord et chaque cercle pose ses --eq-b-* / --eq-c-* (voir TableauNotifications, CerclesNavigation). */
+  /* Rubriques de l'accueil : sans couleur choisie, la palette « Signature » (anthracite, icônes or
+     champagne, texte blanc), neutre et sobre, qui va à tout hôtel ; sur un fond choisi, icône et texte
+     lisibles d'office */
+  --color-bouton-tableau: var(--eq-b-fond, #1c2529);
+  --color-icone-bouton-tableau: var(--eq-b-icone, var(--eq-b-fond-texte, #d4b27a));
+  --color-texte-bouton-tableau: var(--eq-b-texte, var(--eq-b-fond-texte, #ffffff));
+  --color-cercle: var(--eq-c-fond, #ffffff);
+  --color-icone-cercle: var(--eq-c-icone, #1c2529);
+  --color-texte-cercle: var(--eq-c-texte, var(--couleur-tuiles-equipe, #1a1b17));
+  --color-pastilles: var(--eq-pastilles, #dc2626);
+  --color-texte-pastilles: var(--eq-pastilles-texte, #ffffff);
+  --color-fleche: var(--eq-flecheFond, #ffffff);
+  --color-icone-fleche: var(--eq-flecheIcone, #1c2529);
+}
+
+@theme {
+  --color-surface: #ffffff;
+  --color-encre: #1a1b17;
+  --color-encre-douce: #5a5d54;
+  --color-encre-pale: #8b8e84;
+  --color-ligne: #e4e6dc;
+  --color-succes: #4f7a52;
+  --color-alerte: #b5483b;
+
+  /* ── Réponse de la réception (carte « Votre question ») ─────────────
+     Couleurs à régler ici : titre « Réponse de la réception » (et son icône),
+     puis fond de la zone de réponse. Garder un titre foncé sur un fond clair. */
+  --color-reponse-titre: #2f6b3a;
+  --color-reponse-fond: #eef5ee;
+
+  /* Article non ajouté à une commande (service fermé, indisponible) : texte ambre foncé sur fond crème */
+  --color-attention: #6b4a0e;
+  --color-attention-fond: #fbf3e2;
+
+  /* ── Sélection (catégorie choisie, élément actif d'un menu) : à régler ici ──
+     Remplace le noir pur ; garder une teinte foncée pour que le texte blanc reste lisible. */
+  --color-selection: #45483f;
+  --color-texte-selection: #ffffff;
+
+  /* ── Interrupteur de disponibilité (Carte) : marche / arrêt ── */
+  --color-interrupteur: #3f7d58;
+  --color-interrupteur-arret: #d5d7ce;
+
+  --font-sans: var(--police-texte), var(--police-arabe), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--police-titre), var(--police-arabe), ui-serif, Georgia, serif;
+  /* Messages : la police du téléphone, comme WhatsApp (San Francisco sur iPhone, Roboto sur Android) */
+  --font-systeme:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, var(--police-arabe),
+    sans-serif;
+
+  --shadow-carte: 0 1px 2px rgb(26 27 23 / 0.04), 0 8px 24px -12px rgb(26 27 23 / 0.12);
+  --shadow-flottante: 0 -1px 0 rgb(26 27 23 / 0.04), 0 -12px 32px -16px rgb(26 27 23 / 0.14);
+
+  --ease-douce: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-apparition: apparition 480ms var(--ease-douce) both;
+  --animate-montee: montee 520ms var(--ease-douce) both;
+  --animate-descente: descente 420ms var(--ease-douce) both;
+  --animate-reception: reception 460ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  --animate-feuille: feuille 420ms var(--ease-douce) both;
+  --animate-feuille-sortie: feuille-sortie 240ms cubic-bezier(0.4, 0, 1, 1) both;
+  --animate-voile: voile 300ms ease-out both;
+  --animate-voile-sortie: voile 240ms ease-in reverse both;
+  --animate-pulsation: pulsation 1.6s ease-in-out infinite;
+  --animate-coche: coche 520ms var(--ease-douce) both;
+  /* Confirmation temporaire : la barre se vide, puis la confirmation se referme d'elle-même */
+  --animate-decompte: decompte 6s linear forwards;
+
+  @keyframes apparition {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes descente {
+    from {
+      opacity: 0;
+      transform: translateY(-18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes montee {
+    from {
+      opacity: 0;
+      transform: translateY(18px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  @keyframes reception {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.86);
+    }
+    60% {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  @keyframes feuille {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  /* Part de la position où le doigt a lâché la feuille (--decalage) */
+  @keyframes feuille-sortie {
+    from {
+      transform: translateY(var(--decalage, 0px));
+    }
+    to {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes voile {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes pulsation {
+    0%,
+    100% {
+      opacity: 0.35;
+      transform: scale(0.85);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes decompte {
+    from {
+      transform: scaleX(1);
+    }
+    to {
+      transform: scaleX(0);
+    }
+  }
+  @keyframes coche {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: var(--color-fond);
+    color: var(--color-encre);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--accent-hotel) 22%, white);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent-hotel);
+    outline-offset: 2px;
+    border-radius: 12px;
+  }
+}
+
+@layer utilities {
+  .defilement-discret {
+    scrollbar-width: none;
+  }
+  .defilement-discret::-webkit-scrollbar {
+    display: none;
+  }
+  .marge-securite-bas {
+    padding-bottom: max(env(safe-area-inset-bottom), 12px);
+  }
+  /* Textes réglables : police, graisse et taille choisies par la direction, sinon le style d'origine.
+     Un texte qui n'existe pas dans la police choisie (arabe) passe à la police arabe. */
+  .texte-nom-assistant {
+    font-family: var(--police-nom-assistant, var(--police-titre)), var(--police-arabe), serif;
+    font-weight: var(--poids-nom-assistant, 400);
+    font-size: var(--taille-nom-assistant, 20px);
+    font-style: var(--style-nom-assistant, italic);
+    line-height: 1;
+    letter-spacing: var(--espacement-nom-assistant, 0em);
+  }
+  .texte-rubriques-accueil {
+    font-family: var(--police-rubriques-accueil, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-rubriques-accueil, 600);
+    font-size: var(--taille-rubriques-accueil, 14px);
+    line-height: 1.25;
+    letter-spacing: var(--espacement-rubriques-accueil, -0.01em);
+  }
+  .texte-rubriques-menu {
+    font-family: var(--police-rubriques-menu, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-rubriques-menu, 700);
+    font-size: var(--taille-rubriques-menu, 16px);
+    line-height: 1.25;
+    letter-spacing: var(--espacement-rubriques-menu, 0em);
+  }
+  .texte-details-menu {
+    font-family: var(--police-details-menu, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-details-menu, 400);
+    font-size: var(--taille-details-menu, 14px);
+    letter-spacing: var(--espacement-details-menu, 0em);
+  }
+  .texte-messages {
+    font-family: var(--police-messages, var(--font-systeme));
+    font-weight: var(--poids-messages, 400);
+    font-size: var(--taille-messages, 16px);
+    letter-spacing: var(--espacement-messages, 0em);
+  }
+  .texte-titres-cartes {
+    font-family: var(--police-titres-cartes, var(--police-titre)), var(--police-arabe), serif;
+    font-weight: var(--poids-titres-cartes, 400);
+    font-size: var(--taille-titres-cartes, 22px);
+    line-height: 1.1;
+    letter-spacing: var(--espacement-titres-cartes, 0em);
+  }
+  .texte-textes-cartes {
+    font-family: var(--police-textes-cartes, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-textes-cartes, 500);
+    font-size: var(--taille-textes-cartes, 16px);
+    line-height: 1.35;
+    letter-spacing: var(--espacement-textes-cartes, 0em);
+  }
+  .texte-titres {
+    font-family: var(--police-titres, var(--police-titre)), var(--police-arabe), serif;
+    font-weight: var(--poids-titres, 400);
+    font-size: var(--taille-titres, 28px);
+    line-height: 1.1;
+    letter-spacing: var(--espacement-titres, 0em);
+  }
+  .texte-sections {
+    font-family: var(--police-sections, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-sections, 700);
+    font-size: var(--taille-sections, 13px);
+    letter-spacing: var(--espacement-sections, 0.14em);
+  }
+  .texte-intitules {
+    font-family: var(--police-intitules, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-intitules, 700);
+    font-size: var(--taille-intitules, 16px);
+    line-height: 1.25;
+    letter-spacing: var(--espacement-intitules, 0em);
+  }
+  .texte-secondaires {
+    font-family: var(--police-secondaires, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-secondaires, 400);
+    font-size: var(--taille-secondaires, 14px);
+    letter-spacing: var(--espacement-secondaires, 0em);
+  }
+  .texte-prix {
+    font-family: var(--police-prix, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-prix, 600);
+    font-size: var(--taille-prix, 15px);
+    letter-spacing: var(--espacement-prix, 0em);
+  }
+  /* Total d'une commande : le style des prix, en plus grand */
+  .texte-total {
+    font-size: calc(var(--taille-prix, 15px) * 1.4);
+  }
+  .texte-boutons {
+    font-family: var(--police-boutons, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-boutons, 600);
+    font-size: var(--taille-boutons, 16px);
+    letter-spacing: var(--espacement-boutons, 0em);
+  }
+  /* Infos pratiques : le Wi-Fi, les horaires et la date de départ */
+  .texte-wifi-reseau {
+    font-family: var(--police-wifi-reseau, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-wifi-reseau, 700);
+    font-size: var(--taille-wifi-reseau, 24px);
+    line-height: 1.25;
+    letter-spacing: var(--espacement-wifi-reseau, 0.03em);
+  }
+  .texte-wifi-mot-de-passe {
+    font-family: var(--police-wifi-mot-de-passe, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-wifi-mot-de-passe, 700);
+    font-size: var(--taille-wifi-mot-de-passe, 24px);
+    line-height: 1.25;
+    letter-spacing: var(--espacement-wifi-mot-de-passe, 0.03em);
+  }
+  .texte-valeurs-horaires {
+    font-family: var(--police-valeurs-horaires, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-valeurs-horaires, 800);
+    font-size: var(--taille-valeurs-horaires, 16px);
+    letter-spacing: var(--espacement-valeurs-horaires, 0.06em);
+  }
+  /* Équipe : chaque sorte de texte de l'interface du gérant */
+  .texte-nom-hotel {
+    font-family: var(--police-nom-hotel, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-nom-hotel, 500);
+    font-size: var(--taille-nom-hotel, 16px);
+    line-height: 1.2;
+    letter-spacing: var(--espacement-nom-hotel, 0em);
+  }
+  .texte-tuiles-equipe {
+    font-family: var(--police-tuiles-equipe, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-tuiles-equipe, 600);
+    font-size: var(--taille-tuiles-equipe, 14px);
+    line-height: 1.25;
+    letter-spacing: var(--espacement-tuiles-equipe, 0em);
+  }
+  .texte-rubriques-tableau {
+    font-family: var(--police-rubriques-tableau, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-rubriques-tableau, 700);
+    font-size: var(--taille-rubriques-tableau, 22px);
+    line-height: 1.25;
+    letter-spacing: var(--espacement-rubriques-tableau, 0em);
+  }
+  .texte-sous-titres-equipe {
+    font-family: var(--police-sous-titres-equipe, var(--police-titre)), var(--police-arabe), serif;
+    font-weight: var(--poids-sous-titres-equipe, 400);
+    font-size: var(--taille-sous-titres-equipe, 26px);
+    line-height: 1.15;
+    letter-spacing: var(--espacement-sous-titres-equipe, 0em);
+  }
+  .texte-sections-equipe {
+    font-family: var(--police-sections-equipe, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-sections-equipe, 700);
+    font-size: var(--taille-sections-equipe, 12px);
+    letter-spacing: var(--espacement-sections-equipe, 0.14em);
+  }
+  .texte-courant-equipe {
+    font-family: var(--police-courant-equipe, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-courant-equipe, 400);
+    font-size: var(--taille-courant-equipe, 15px);
+    letter-spacing: var(--espacement-courant-equipe, 0em);
+  }
+  .texte-etiquettes-equipe {
+    font-family: var(--police-etiquettes-equipe, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-etiquettes-equipe, 700);
+    font-size: var(--taille-etiquettes-equipe, 11px);
+    letter-spacing: var(--espacement-etiquettes-equipe, 0.04em);
+  }
+  .texte-libelles-equipe {
+    font-family: var(--police-libelles-equipe, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-libelles-equipe, 600);
+    font-size: var(--taille-libelles-equipe, 14px);
+    letter-spacing: var(--espacement-libelles-equipe, 0em);
+  }
+  .texte-champs-equipe {
+    font-family: var(--police-champs-equipe, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-champs-equipe, 400);
+    font-size: var(--taille-champs-equipe, 15px);
+    letter-spacing: var(--espacement-champs-equipe, 0em);
+  }
+  .texte-boutons-equipe {
+    font-family: var(--police-boutons-equipe, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-boutons-equipe, 600);
+    font-size: var(--taille-boutons-equipe, 14px);
+    letter-spacing: var(--espacement-boutons-equipe, 0em);
+  }
+  .texte-titres-equipe {
+    font-family: var(--police-titres-equipe, var(--police-titre)), var(--police-arabe), serif;
+    font-weight: var(--poids-titres-equipe, 400);
+    font-size: var(--taille-titres-equipe, 36px);
+    line-height: 1;
+    letter-spacing: var(--espacement-titres-equipe, 0em);
+  }
+  .texte-details-equipe {
+    font-family: var(--police-details-equipe, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-details-equipe, 400);
+    font-size: var(--taille-details-equipe, 14px);
+    letter-spacing: var(--espacement-details-equipe, 0em);
+  }
+  .texte-numeros {
+    font-family: var(--police-numeros, var(--police-titre)), var(--police-arabe), serif;
+    font-weight: var(--poids-numeros, 400);
+    font-size: var(--taille-numeros, 26px);
+    line-height: 1;
+    letter-spacing: var(--espacement-numeros, 0em);
+  }
+  .texte-textes-equipe {
+    font-family: var(--police-textes-equipe, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-textes-equipe, 600);
+    font-size: var(--taille-textes-equipe, 16px);
+    line-height: 1.35;
+    letter-spacing: var(--espacement-textes-equipe, 0em);
+  }
+  .texte-services-equipe {
+    font-family: var(--police-services-equipe, var(--police-texte)), var(--police-arabe), sans-serif;
+    font-weight: var(--poids-services-equipe, 600);
+    font-size: var(--taille-services-equipe, 13px);
+    letter-spacing: var(--espacement-services-equipe, 0em);
+  }
+  /* Équipe : tout texte sans réglage propre suit le texte courant (police, couleur, espacement) */
+  [data-espace] {
+    font-family: var(--police-courant-equipe, var(--police-texte)), var(--police-arabe), sans-serif;
+    color: var(--couleur-courant-equipe, #1a1b17);
+    letter-spacing: var(--espacement-courant-equipe, 0em);
+  }
+  /* Champ de saisie légèrement surélevé : confortable au pouce, loin de la barre système */
+  .marge-saisie {
+    padding-bottom: max(calc(env(safe-area-inset-bottom) + 22px), 38px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* Client : toutes les icônes à la couleur choisie par la direction (anthracite par défaut), hors couche
+   (passe devant les couleurs des utilitaires). Exceptions : l'en-tête (cloche, toujours noire), fond plein
+   (bouton, alerte, pastille d'étape), bouton désactivé, indicateur d'état */
+[data-concierge]
+  svg.lucide:not(
+    .icone-etat,
+    header *,
+    .bg-bouton *,
+    .bg-alerte *,
+    .bg-succes *,
+    .bg-accent *,
+    .text-white *,
+    :disabled *
+  ) {
+  color: var(--icones-hotel, #1c2529);
+}
+
+/* Équipe : toutes les icônes en anthracite, hors couche. Exceptions : l'en-tête (toujours noir), les icônes
+   dont la couleur se règle dans Design (rubriques, cercles, flèche), celles qui portent un sens (alerte,
+   succès, étoiles), fonds pleins, bouton désactivé */
+[data-espace]
+  svg.lucide:not(
+    .icone-etat,
+    header *,
+    .text-icone-bouton-tableau,
+    .text-icone-bouton-tableau *,
+    .text-icone-cercle,
+    .text-icone-cercle *,
+    .text-icone-fleche,
+    .text-icone-fleche *,
+    .text-alerte,
+    .text-succes,
+    .text-accent,
+    .text-accent-profond,
+    .fill-accent,
+    .text-bouton,
+    .bg-bouton *,
+    .bg-alerte *,
+    .bg-succes *,
+    .bg-accent *,
+    .bg-pastilles *,
+    .text-white,
+    .text-white *,
+    :disabled *
+  ) {
+  color: #1c2529;
+}

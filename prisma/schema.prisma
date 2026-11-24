@@ -1,0 +1,472 @@
+// ─────────────────────────────────────────────────────────────────────
+// Lalla — concierge IA de chambre d'hôtel
+// Multi-tenant « schéma partagé » : chaque ligne métier porte hotelId.
+// Conventions de nommage 100 % français.
+// ─────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────
+// Énumérations
+// ─────────────────────────────────────────────────────────────
+
+enum StatutSejour {
+  EN_COURS
+  TERMINE
+}
+
+enum TypeCategorie {
+  RESTAURATION
+  BOISSONS
+  BIEN_ETRE
+  TRANSPORT
+  EXPERIENCE
+  SERVICE
+}
+
+enum TypeDocument {
+  LIVRET_ACCUEIL
+  MENU
+  CONSIGNES
+  FAQ
+  RECOMMANDATIONS
+  AUTRE
+}
+
+enum RoleMessage {
+  CLIENT
+  ASSISTANT
+  SYSTEME // contexte daté injecté à chaque tour (heure locale, séjour)
+}
+
+enum TypeDemande {
+  COMMANDE // room-service, boissons, spa… (articles du catalogue)
+  SERVICE // serviettes, ménage, réveil, taxi…
+  INCIDENT // panne, problème dans la chambre
+  QUESTION // question à laquelle seule l'équipe peut répondre ; la réponse revient au client
+}
+
+enum StatutDemande {
+  PROPOSEE // préparée par l'IA, en attente de confirmation du client
+  CONFIRMEE // confirmée par le client, transmise à la réception
+  PRISE_EN_CHARGE // un membre du personnel s'en occupe
+  TERMINEE
+  ANNULEE
+}
+
+// Services de l'hôtel : chaque demande est routée vers l'un d'eux.
+// Petit hôtel : tous pointent vers la réception (numéro par défaut).
+enum Departement {
+  RECEPTION
+  ETAGES
+  RESTAURATION
+  TECHNIQUE
+  CONCIERGERIE
+  BIEN_ETRE
+}
+
+// Zone touristique : adapte les recommandations du modèle par défaut
+enum ZoneTouristique {
+  DAKAR
+  PETITE_COTE
+  SAINT_LOUIS
+  SINE_SALOUM
+  CASAMANCE
+  AUTRE
+}
+
+enum RolePersonnel {
+  DIRECTION
+  RECEPTION
+}
+
+// ─────────────────────────────────────────────────────────────
+// Locataire : l'hôtel
+// ─────────────────────────────────────────────────────────────
+
+model Hotel {
+  id                    String          @id @default(cuid())
+  slug                  String          @unique
+  nom                   String
+  ville                 String
+  zone                  ZoneTouristique @default(DAKAR)
+  // Identité visuelle (couleur d'accent de la marque, ex. « #8a7a52 »)
+  couleurAccent         String          @default("#6f7d5c")
+  // Fond des messages de l'assistant ; vide : teinte claire dérivée de couleurAccent
+  couleurMessages       String?
+  // Fond de l'interface client (teinte claire) ; vide : blanc cassé par défaut
+  couleurFond           String?
+  // Heures et mot de passe Wi-Fi mis en avant côté client ; vide : couleur de l'hôtel, assombrie
+  couleurHoraires       String?
+  // Icônes du client (rubriques, fenêtres, cartes), sauf celles de l'en-tête ; vide : noir
+  couleurIcones         String?
+  // Fond des messages du client ; vide : teinte claire dérivée de la couleur des boutons
+  couleurMessagesClient String?
+  // Boutons principaux (client et espace hôtel) ; vide : couleur de l'hôtel assombrie (client), encre (espace)
+  couleurBoutons        String?
+  // Police, taille et couleur de chaque texte (client et équipe), réglées par la direction :
+  // { "<role>": { "police": "manrope", "taille": 16, "couleur": "#1a1b17" | null } } — voir lib/typographie.ts
+  typographie           Json            @default("{}")
+  // Couleur des composants de l'équipe (tableau de bord, cercles, pastilles) : { "tableau": "#1d4e89" | null, … }
+  // — voir lib/couleurs.ts
+  couleursEquipe        Json            @default("{}")
+  // Dernière consultation de la page Avis par l'équipe : les avis plus récents sont « nouveaux »
+  avisConsultesLe       DateTime?
+  // Logo (image servie par l'application) et mention sous le nom, ex. « Hôtel & Spa » : en-tête du client
+  logoUrl               String?
+  sousTitre             String?
+  nomAssistant          String          @default("Lalla")
+  langueParDefaut       String          @default("fr")
+  // Langue des notifications de l'équipe (une des huit langues des clients)
+  langueEquipe          String          @default("fr")
+  devise                String          @default("XOF")
+  fuseauHoraire         String          @default("Africa/Dakar")
+  telephoneReception    String?
+  // Numéros WhatsApp au format international sans « + » (ex. 221771234567).
+  // whatsappReception = destination par défaut de tous les services.
+  whatsappReception     String?
+  whatsappDirection     String?
+  // E-réputation et réservation directe
+  lienAvisPublic        String? // TripAdvisor ou Google
+  lienReservation       String? // site de l'hôtel (contourner Booking)
+  codeFidelite          String? // code promo réservation directe
+  // Infos essentielles toujours présentes dans le contexte de l'IA
+  wifiReseau            String?
+  wifiMotDePasse        String?
+  heureCheckout         String          @default("12:00")
+  // Délai habituel (minutes) entre l'acceptation et l'arrivée, annoncé au client ; vide : rien d'annoncé
+  delaiRestauration     Int?            @default(30)
+  delaiEtages           Int?            @default(15)
+  delaiTechnique        Int?            @default(20)
+  // Exiger un séjour actif pour passer commande (protection QR photographié)
+  exigerSejourActif     Boolean         @default(true)
+  actif                 Boolean         @default(true)
+  creeLe                DateTime        @default(now())
+
+  services      ServiceHotel[]
+  chambres      Chambre[]
+  sejours       Sejour[]
+  categories    CategorieCatalogue[]
+  articles      ArticleCatalogue[]
+  documents     Document[]
+  fragments     FragmentDocument[]
+  conversations Conversation[]
+  demandes      Demande[]
+  avis          Avis[]
+  personnel     Personnel[]
+}
+
+// Configuration d'un service : numéro WhatsApp dédié (sinon : réception)
+model ServiceHotel {
+  id          String      @id @default(cuid())
+  hotelId     String
+  departement Departement
+  whatsapp    String?
+  actif       Boolean     @default(true)
+
+  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@unique([hotelId, departement])
+}
+
+model Chambre {
+  id      String  @id @default(cuid())
+  hotelId String
+  numero  String
+  etage   Int?
+  // Jeton opaque imprimé dans le QR code : non devinable, révocable
+  jetonQr String  @unique
+  actif   Boolean @default(true)
+
+  hotel         Hotel          @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  sejours       Sejour[]
+  conversations Conversation[]
+  demandes      Demande[]
+  avis          Avis[]
+
+  @@unique([hotelId, numero])
+}
+
+// Un séjour = une occupation de chambre (créé au check-in, clos au check-out).
+// Sert à : bloquer les commandes hors séjour, déclencher l'avis la veille du départ.
+model Sejour {
+  id            String       @id @default(cuid())
+  hotelId       String
+  chambreId     String
+  nomClient     String?
+  arrivee       DateTime
+  depart        DateTime
+  statut        StatutSejour @default(EN_COURS)
+  avisSollicite Boolean      @default(false)
+  creeLe        DateTime     @default(now())
+
+  hotel         Hotel          @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  chambre       Chambre        @relation(fields: [chambreId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  demandes      Demande[]
+  avis          Avis[]
+  // + index unique partiel « un séjour EN_COURS par chambre » (migration sejour_unique_en_cours)
+
+  @@index([hotelId, statut])
+  @@index([chambreId, statut])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Catalogue structuré (source de vérité des prix — jamais le LLM)
+// ─────────────────────────────────────────────────────────────
+
+model CategorieCatalogue {
+  id          String        @id @default(cuid())
+  hotelId     String
+  nom         String
+  type        TypeCategorie
+  // Service qui reçoit les commandes de cette rubrique
+  departement Departement   @default(RESTAURATION)
+  horaires    String? // ex. « 7h – 23h »
+  ordre       Int           @default(0)
+  // { "en": { "nom": "…" }, "es": … } — le français est la langue source
+  traductions Json          @default("{}")
+  // Issu du modèle par défaut et pas encore validé par le gérant
+  aVerifier   Boolean       @default(false)
+
+  hotel    Hotel              @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  articles ArticleCatalogue[]
+
+  @@index([hotelId])
+}
+
+model ArticleCatalogue {
+  id          String  @id @default(cuid())
+  hotelId     String
+  categorieId String
+  nom         String
+  description String?
+  prix        Int // en unités de la devise (FCFA : pas de décimales) — indicatif
+  // Photo affichée dans la carte : chemin local (/images/…) ou lien https
+  photo       String?
+  disponible  Boolean @default(true)
+  ordre       Int     @default(0)
+  // { "en": { "nom": "…", "description": "…" }, … }
+  traductions Json    @default("{}")
+  aVerifier   Boolean @default(false)
+
+  hotel     Hotel              @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  categorie CategorieCatalogue @relation(fields: [categorieId], references: [id], onDelete: Cascade)
+  lignes    LigneDemande[]
+
+  @@index([hotelId, disponible])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Connaissance non structurée (RAG)
+// ─────────────────────────────────────────────────────────────
+
+model Document {
+  id         String       @id @default(cuid())
+  hotelId    String
+  titre      String
+  type       TypeDocument
+  langue     String       @default("fr")
+  contenu    String
+  aVerifier  Boolean      @default(false)
+  misAJourLe DateTime     @updatedAt
+
+  hotel     Hotel              @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  fragments FragmentDocument[]
+
+  @@index([hotelId])
+}
+
+// Fragment indexé. hotelId dénormalisé : chaque recherche vectorielle
+// est filtrée par locataire AVANT le tri par similarité.
+model FragmentDocument {
+  id         String                       @id @default(cuid())
+  hotelId    String
+  documentId String
+  ordre      Int
+  contenu    String
+  embedding  Unsupported("vector(1024)")?
+
+  hotel    Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([hotelId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Conversations
+// ─────────────────────────────────────────────────────────────
+
+model Conversation {
+  id                   String    @id @default(cuid())
+  hotelId              String
+  chambreId            String
+  sejourId             String?
+  langue               String?
+  creeLe               DateTime  @default(now())
+  dernierMessageLe     DateTime  @default(now())
+  // Tour en cours (client qui écrit, réception qui répond) : un seul à la fois, bail daté
+  tourVerrouilleJusqua DateTime?
+
+  hotel    Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  chambre  Chambre   @relation(fields: [chambreId], references: [id], onDelete: Cascade)
+  sejour   Sejour?   @relation(fields: [sejourId], references: [id], onDelete: SetNull)
+  messages Message[]
+  demandes Demande[]
+
+  @@index([hotelId, creeLe])
+}
+
+// contenu = blocs Anthropic exacts (texte, tool_use, tool_result…), rejoués
+// tels quels au modèle : historique en ajout seul, cache de prompt préservé.
+model Message {
+  id             String      @id @default(cuid())
+  // Ordre strict d'insertion (plusieurs messages peuvent partager la même milliseconde)
+  rang           Int         @default(autoincrement())
+  conversationId String
+  role           RoleMessage
+  contenu        Json
+  texte          String? // texte lisible, pour l'affichage et l'analytique
+  // Traductions de texte, calculées à la demande : { "en": "…", "wo": "…" }
+  traductions    Json        @default("{}")
+  jetonsEntree   Int?
+  jetonsSortie   Int?
+  creeLe         DateTime    @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, rang])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Demandes (commandes, services, incidents)
+// ─────────────────────────────────────────────────────────────
+
+model Demande {
+  id                 String        @id @default(cuid())
+  hotelId            String
+  chambreId          String
+  sejourId           String?
+  conversationId     String?
+  type               TypeDemande
+  departement        Departement
+  statut             StatutDemande @default(PROPOSEE)
+  // Langue choisie par le client (l'équipe lit fr ou en, le client la sienne)
+  langueClient       String        @default("fr")
+  resume             String // en français : « 1 Burger Teranga, 1 Bissap frais »
+  details            String?
+  // { "fr": { "resume", "details" }, "en": {…}, "<langueClient>": {…} }
+  traductions        Json          @default("{}")
+  urgent             Boolean       @default(false)
+  montantTotal       Int           @default(0)
+  // Jeton du lien WhatsApp « Prendre en charge » (capacité, sans connexion)
+  jetonPersonnel     String        @unique
+  notifiee           Boolean       @default(false)
+  creeLe             DateTime      @default(now())
+  confirmeeLe        DateTime?
+  priseEnChargeLe    DateTime?
+  termineeLe         DateTime?
+  // Annulée par le client après l'avoir transmise (avant que l'équipe ne l'accepte)
+  annuleeParClient   Boolean       @default(false)
+  // Question : réponse de l'équipe (dans sa langue), traduite pour le client par Lalla
+  reponse            String?
+  reponseTraductions Json          @default("{}")
+  reponseMessageId   String? // message du fil qui porte la réponse au client
+  // Réponse générale et durable retenue par Lalla (fiche « Réponses de la réception ») : elle répondra seule ensuite
+  reponseRetenue     Boolean       @default(false)
+  // Messages de l'équipe au client à propos de cette demande : [{ messageId, original, traductions, le }]
+  messagesEquipe     Json          @default("[]")
+  // Articles demandés mais non ajoutés (service fermé, indisponible), montrés au client sur la carte :
+  // [{ libelle: { fr, en, <langue du client> }, raison: "ferme" | "indisponible", horaires }]
+  articlesRefuses    Json          @default("[]")
+  // Heure d'arrivée annoncée au client : heure souhaitée (commande programmée) ou acceptation + délai du service
+  prevueLe           DateTime?
+
+  hotel        Hotel          @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  chambre      Chambre        @relation(fields: [chambreId], references: [id], onDelete: Cascade)
+  sejour       Sejour?        @relation(fields: [sejourId], references: [id], onDelete: SetNull)
+  conversation Conversation?  @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  lignes       LigneDemande[]
+
+  @@index([hotelId, statut, creeLe])
+  @@index([hotelId, departement, statut])
+  @@index([hotelId, statut, termineeLe]) // historique du jour, du plus récent au plus ancien
+  @@index([conversationId, statut]) // cartes en attente d'une conversation (à chaque tour)
+  @@index([sejourId]) // demandes du séjour rappelées au modèle
+}
+
+model LigneDemande {
+  id           String  @id @default(cuid())
+  demandeId    String
+  articleId    String?
+  libelle      String
+  quantite     Int
+  prixUnitaire Int
+  remarque     String? // en français
+  // { "fr": { "libelle", "remarque" }, "en": {…}, "<langueClient>": {…} }
+  traductions  Json    @default("{}")
+
+  demande Demande           @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  article ArticleCatalogue? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+}
+
+// ─────────────────────────────────────────────────────────────
+// E-réputation
+// ─────────────────────────────────────────────────────────────
+
+model Avis {
+  id               String   @id @default(cuid())
+  hotelId          String
+  chambreId        String
+  sejourId         String?
+  note             Int // 1 à 5
+  commentaire      String?
+  langueClient     String   @default("fr")
+  // Commentaire traduit pour l'équipe : { "fr": "…", "en": "…" }
+  traductions      Json     @default("{}")
+  // Le client a ouvert le lien public (TripAdvisor / Google)
+  lienPublicOuvert Boolean  @default(false)
+  traite           Boolean  @default(false)
+  creeLe           DateTime @default(now())
+
+  hotel   Hotel   @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  chambre Chambre @relation(fields: [chambreId], references: [id], onDelete: Cascade)
+  sejour  Sejour? @relation(fields: [sejourId], references: [id], onDelete: SetNull)
+
+  @@index([hotelId, creeLe])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Personnel de l'hôtel (espace de gestion)
+// ─────────────────────────────────────────────────────────────
+
+model Personnel {
+  id             String        @id @default(cuid())
+  hotelId        String
+  nom            String
+  email          String        @unique
+  motDePasseHash String
+  role           RolePersonnel @default(RECEPTION)
+  creeLe         DateTime      @default(now())
+
+  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@index([hotelId])
+}
+
+// Santé des modèles d'IA, partagée entre toutes les instances du serveur (fonctions éphémères) :
+// un modèle au quota épuisé est écarté, un modèle lent passe en fin de file, pour tout le monde.
+model EtatModeleIA {
+  modele             String    @id
+  indisponibleJusqua DateTime?
+  lentJusqua         DateTime?
+  latenceMs          Int? // délai avant la réponse lors du dernier appel réussi
+  majLe              DateTime  @updatedAt
+}

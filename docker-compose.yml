@@ -1,0 +1,17 @@
+# Base locale : PostgreSQL 17 + pgvector (recherche sémantique RAG).
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: lalla-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lalla
+      POSTGRES_PASSWORD: lalla
+      POSTGRES_DB: lalla
+    ports:
+      - "5436:5432"
+    volumes:
+      - lalla-donnees:/var/lib/postgresql/data
+
+volumes:
+  lalla-donnees:
